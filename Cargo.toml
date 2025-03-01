@@ -1,0 +1,13 @@
+[package]
+name = "ac_rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1.0.96"
+env_logger = "0.11.6"
+libc = "0.2.170"
+log = "0.4.26"
