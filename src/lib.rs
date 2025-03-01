@@ -13,8 +13,8 @@ pub struct Player {
 }
 
 fn init() -> anyhow::Result<()> {
-    // Initialize environment variables
-    dotenvy::from_path("/home/pat/vs/ac_rs/.env")
+    // Initialize offsets from .env file
+    dotenvy::from_path(env::var("HOME")? + "/Documents/.ac_rs.env")
         .ok()
         .ok_or(anyhow!("Failed to load .env file"))?;
     let player1_offset = u64::from_str_radix(&env::var("PLAYER1_OFFSET")?, 16)?;

@@ -1,21 +1,26 @@
 use std::{
+    env,
     fs::{self, File},
     io::Write,
     path::Path,
     process::Command,
 };
 
-const BIN_PATH: &str = "/home/pat/vs/AC/bin_unix/native_client";
-const ENV_PATH: &str = ".env";
+const ENV_FILENAME: &str = ".ac_rs.env";
 
 /// Run nm on the binary to find the offsets of the required symbols and write the to a .env file
 fn main() {
+    // The symbols to locate and write to the .env file
     let required_symbols = ["player1", "players"];
 
-    if !Path::new(ENV_PATH).exists() {
-        let mut file = fs::File::create_new(ENV_PATH).expect("Failed to create .env file");
+    // Need a common path to the .env file
+    let home = env::var("HOME").expect("HOME environment variable not set");
+    let env_path = format!("{}/Documents/{}", home, ENV_FILENAME);
 
-        let bin_path = BIN_PATH;
+    if !Path::new(&env_path).exists() || fs::metadata(&env_path).is_ok_and(|f| f.len() == 0) {
+        let mut file = fs::File::create(&env_path).expect("Failed to create .env file");
+
+        let bin_path = env::var("AC_BIN_PATH").expect("AC_BIN_PATH environment variable not set");
         let output = Command::new("nm")
             .arg(bin_path)
             .output()
