@@ -1,16 +1,14 @@
 use log::{error, info};
-use player::Player;
 use process::Process;
 
 mod player;
 mod process;
-mod symbol;
 
 fn init() -> anyhow::Result<()> {
     // Get the process and localplayer
     let process = Process::new()?;
-    let player1 = Player::get_player1(&process);
 
+    let player1 = process.get_player1()?;
     info!("Player 1 health: {}", player1.health);
 
     Ok(())
@@ -21,7 +19,7 @@ fn init() -> anyhow::Result<()> {
 static INIT: extern "C" fn() = {
     extern "C" fn init_wrapper() {
         env_logger::Builder::new()
-            .filter_level(log::LevelFilter::Info)
+            .filter_level(log::LevelFilter::Debug)
             .init();
         if let Err(e) = init() {
             error!("Initialization error: {}", e);
