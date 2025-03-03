@@ -1,28 +1,15 @@
-use std::env;
-
-use anyhow::anyhow;
 use log::{error, info};
+use player::Player;
 use process::Process;
 
+mod player;
 mod process;
-
-#[repr(C)]
-pub struct Player {
-    _pad_0x100: [u8; 0x100],
-    pub health: i32,
-}
+mod symbol;
 
 fn init() -> anyhow::Result<()> {
-    // Initialize offsets from .env file
-    dotenvy::from_path(env::var("HOME")? + "/Documents/.ac_rs.env")
-        .ok()
-        .ok_or(anyhow!("Failed to load .env file"))?;
-    let player1_offset = u64::from_str_radix(&env::var("PLAYER1_OFFSET")?, 16)?;
-
     // Get the process and localplayer
     let process = Process::new()?;
-    let player1 =
-        { unsafe { &**((process.base_address + player1_offset) as *const *const Player) } };
+    let player1 = Player::get_player1(&process);
 
     info!("Player 1 health: {}", player1.health);
 
