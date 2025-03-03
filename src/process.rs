@@ -10,6 +10,19 @@ use crate::player::Player;
 const PLAYER1_SYMBOL: &str = "player1";
 const PLAYERS_SYMBOL: &str = "players";
 
+// This is shit but I don't want to use nightly for OnceLock::get_or_try_init
+macro_rules! symbol_address {
+    ($self:ident, $symbol:ident) => {{
+        static mut OFFSET: u64 = 0;
+        unsafe {
+            if OFFSET == 0 {
+                OFFSET = $self.get_symbol_offset($symbol)?;
+            }
+            $self.base_address + OFFSET
+        }
+    }};
+}
+
 pub struct Process {
     base_address: u64,
 }
@@ -22,23 +35,12 @@ impl Process {
     }
 
     pub unsafe fn get_player1(&self) -> anyhow::Result<&'static Player> {
-        // This is shit but I don't want to use nightly for OnceLock::get_or_try_init
-        static mut OFFSET: u64 = 0;
-        if OFFSET == 0 {
-            OFFSET = self.get_symbol_offset(PLAYER1_SYMBOL)?;
-        }
-        let addr = self.base_address + OFFSET;
-
+        let addr = symbol_address!(self, PLAYER1_SYMBOL);
         Ok(&**(addr as *const *const Player))
     }
 
     pub unsafe fn get_players(&self) -> anyhow::Result<Vec<&'static Player>> {
-        static mut OFFSET: u64 = 0;
-        if OFFSET == 0 {
-            OFFSET = self.get_symbol_offset(PLAYERS_SYMBOL)?;
-        }
-        let addr = self.base_address + OFFSET;
-
+        let addr = symbol_address!(self, PLAYERS_SYMBOL);
         // AssaultCube::vector stores a capacity and a length, we need the length
         let length = &*((addr + 0xc) as *const u32);
         // The symbol points to a pointer to a list of Player pointers
