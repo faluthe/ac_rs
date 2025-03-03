@@ -11,7 +11,7 @@ const PLAYER1_SYMBOL: &str = "player1";
 const PLAYERS_SYMBOL: &str = "players";
 
 // This is shit but I don't want to use nightly for OnceLock::get_or_try_init
-macro_rules! symbol_address {
+macro_rules! static_symbol_address {
     ($self:ident, $symbol:ident) => {{
         static mut OFFSET: u64 = 0;
         unsafe {
@@ -35,12 +35,12 @@ impl Process {
     }
 
     pub unsafe fn get_player1(&self) -> anyhow::Result<&'static Player> {
-        let addr = symbol_address!(self, PLAYER1_SYMBOL);
+        let addr = static_symbol_address!(self, PLAYER1_SYMBOL);
         Ok(&**(addr as *const *const Player))
     }
 
     pub unsafe fn get_players(&self) -> anyhow::Result<Vec<&'static Player>> {
-        let addr = symbol_address!(self, PLAYERS_SYMBOL);
+        let addr = static_symbol_address!(self, PLAYERS_SYMBOL);
         // AssaultCube::vector stores a capacity and a length, we need the length
         let length = &*((addr + 0xc) as *const u32);
         // The symbol points to a pointer to a list of Player pointers
