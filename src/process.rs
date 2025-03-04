@@ -9,6 +9,8 @@ use crate::player::Player;
 
 const PLAYER1_SYMBOL: &str = "player1";
 const PLAYERS_SYMBOL: &str = "players";
+
+#[derive(Copy, Clone)]
 pub struct Process {
     base_address: u64,
 }

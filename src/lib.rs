@@ -17,7 +17,7 @@ unsafe fn init() -> anyhow::Result<()> {
         info!("Player health: {}", player.health);
     }
 
-    hooks::hook_swap_window()?;
+    hooks::init()?;
 
     Ok(())
 }

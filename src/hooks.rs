@@ -7,18 +7,39 @@ use anyhow::anyhow;
 use libc::{dlopen, dlsym, RTLD_LAZY, RTLD_NOLOAD};
 use log::{debug, warn};
 
+use crate::process::Process;
+
 const SDL2_LIB: &str = "/usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0.3000.0";
 
+static mut PROCESS: Option<Process> = None;
 static mut OG_SWAP_WINDOW: Option<unsafe extern "C" fn(*mut c_void)> = None;
 
+pub unsafe fn init() -> anyhow::Result<()> {
+    // The process needs to be initialized before any hooks
+    PROCESS = Some(Process::new()?);
+    hook_swap_window()?;
+    Ok(())
+}
+
 unsafe extern "C" fn hk_swap_window(window: *mut c_void) {
-    debug!("Hooked SDL_GL_SwapWindow!");
-    if let Some(og) = OG_SWAP_WINDOW {
+    unsafe fn hk(window: *mut c_void) -> anyhow::Result<()> {
+        let og = OG_SWAP_WINDOW.ok_or(anyhow!("SwapWindow original function not initialized"))?;
+        let process = PROCESS.ok_or(anyhow!("Process not initialized"))?;
+
         og(window);
+
+        let player1 = process.get_player1()?;
+        debug!("Player 1 health: {}", player1.health);
+
+        Ok(())
+    }
+
+    if let Err(e) = hk(window) {
+        warn!("Error in hk_swap_window: {}", e);
     }
 }
 
-pub unsafe fn hook_swap_window() -> anyhow::Result<()> {
+unsafe fn hook_swap_window() -> anyhow::Result<()> {
     let lib = CString::new(SDL2_LIB)?;
     let h_sdl = dlopen(lib.as_ptr(), RTLD_NOLOAD | RTLD_LAZY);
     if h_sdl.is_null() {
