@@ -1,6 +1,7 @@
 use log::{error, info};
 use process::Process;
 
+mod hooks;
 mod player;
 mod process;
 
@@ -15,6 +16,8 @@ unsafe fn init() -> anyhow::Result<()> {
     for player in players {
         info!("Player health: {}", player.health);
     }
+
+    hooks::hook_swap_window()?;
 
     Ok(())
 }

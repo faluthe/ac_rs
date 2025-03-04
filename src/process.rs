@@ -9,6 +9,9 @@ use crate::player::Player;
 
 const PLAYER1_SYMBOL: &str = "player1";
 const PLAYERS_SYMBOL: &str = "players";
+pub struct Process {
+    base_address: u64,
+}
 
 // This is shit but I don't want to use nightly for OnceLock::get_or_try_init
 macro_rules! static_symbol_address {
@@ -21,10 +24,6 @@ macro_rules! static_symbol_address {
             $self.base_address + OFFSET
         }
     }};
-}
-
-pub struct Process {
-    base_address: u64,
 }
 
 impl Process {
