@@ -29,9 +29,9 @@ macro_rules! static_symbol_address {
 }
 
 impl Process {
-    pub fn new() -> anyhow::Result<Self> {
-        let base_address =
-            unsafe { Self::main_exe_base().ok_or(anyhow!("Failed to find main exe base"))? };
+    pub unsafe fn new() -> anyhow::Result<Self> {
+        let base_address = Self::main_exe_base().ok_or(anyhow!("Failed to find main exe base"))?;
+        debug!("Process base address found @ {:#X}", base_address);
         Ok(Self { base_address })
     }
 
@@ -57,7 +57,7 @@ impl Process {
         for sym in &elf.syms {
             if let Some(name) = elf.strtab.get_at(sym.st_name) {
                 if name == symbol {
-                    debug!("Found symbol: {} @ {:#x}", symbol, sym.st_value);
+                    debug!("Found symbol {} @ {:#X}", symbol, sym.st_value);
                     return Ok(sym.st_value);
                 }
             }
@@ -74,6 +74,7 @@ impl Process {
         ) -> c_int {
             let info = &*info;
             let base_address = data as *mut u64;
+            // The main executable has a null name
             if info.dlpi_name.is_null() || *info.dlpi_name == 0 {
                 *base_address = info.dlpi_addr;
                 1 // Stop iterating
@@ -83,6 +84,7 @@ impl Process {
         }
 
         let mut base_address: u64 = 0;
+        // The main executable is the first entry, so no real need to iterate :shrug:
         dl_iterate_phdr(Some(callback), &mut base_address as *mut u64 as *mut c_void);
         match base_address {
             0 => None,
