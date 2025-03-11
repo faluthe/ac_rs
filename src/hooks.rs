@@ -45,7 +45,16 @@ unsafe extern "C" fn hk_swap_window(window: *mut c_void) {
         og(window);
 
         let player1 = process.get_player1()?;
-        info!("Player 1 health: {}", player1.health);
+        info!(
+            "Player1: x: {}, y: {}, z: {}, health: {}, pitch: {}, yaw: {}, roll: {}",
+            player1.x,
+            player1.y,
+            player1.z,
+            player1.health,
+            player1.pitch,
+            player1.yaw,
+            player1.roll
+        );
         let players = process.get_players()?;
         for player in players {
             info!("Player health: {}", player.health);
