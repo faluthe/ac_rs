@@ -35,9 +35,9 @@ impl Process {
         Ok(Self { base_address })
     }
 
-    pub unsafe fn get_player1(&self) -> anyhow::Result<&'static Player> {
+    pub unsafe fn get_player1(&self) -> anyhow::Result<&'static mut Player> {
         let addr = static_symbol_address!(self, PLAYER1_SYMBOL);
-        Ok(&**(addr as *const *const Player))
+        Ok(&mut **(addr as *const *mut Player))
     }
 
     pub unsafe fn get_players(&self) -> anyhow::Result<Vec<&'static Player>> {

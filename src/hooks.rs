@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::anyhow;
 use libc::{dlopen, dlsym, RTLD_LAZY, RTLD_NOLOAD};
-use log::{debug, info, warn};
+use log::{debug, warn};
 
 use crate::process::Process;
 
@@ -45,19 +45,21 @@ unsafe extern "C" fn hk_swap_window(window: *mut c_void) {
         og(window);
 
         let player1 = process.get_player1()?;
-        info!(
-            "Player1: x: {}, y: {}, z: {}, health: {}, pitch: {}, yaw: {}, roll: {}",
-            player1.x,
-            player1.y,
-            player1.z,
-            player1.health,
-            player1.pitch,
-            player1.yaw,
-            player1.roll
-        );
-        let players = process.get_players()?;
-        for player in players {
-            info!("Player health: {}", player.health);
+        // Find the angles to the player with the smallest fov
+        let best_angles = process
+            .get_players()?
+            .into_iter()
+            .map(|player| player1.angles_to(player))
+            .min_by(|a, b| {
+                player1
+                    .view_angles
+                    .fov_to(a)
+                    .partial_cmp(&player1.view_angles.fov_to(b))
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+
+        if let Some(best_angles) = best_angles {
+            player1.view_angles = best_angles;
         }
 
         Ok(())
