@@ -10,7 +10,7 @@ pub struct Player {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct WorldPosition {
     pub x: f32,
     pub y: f32,

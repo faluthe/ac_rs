@@ -1,14 +1,15 @@
-use std::{ffi::c_void, fs};
+use std::{ffi::c_void, fs, mem};
 
 use anyhow::anyhow;
 use goblin::elf::Elf;
 use libc::{c_int, dl_iterate_phdr, dl_phdr_info, size_t};
 use log::debug;
 
-use crate::player::Player;
+use crate::player::{Player, WorldPosition};
 
 const PLAYER1_SYMBOL: &str = "player1";
 const PLAYERS_SYMBOL: &str = "players";
+const TRACELINE_SYMBOL: &str = "_Z9TraceLine3vecS_P6dynentbP13traceresult_sb";
 
 #[derive(Copy, Clone)]
 pub struct Process {
@@ -48,6 +49,36 @@ impl Process {
         let list = *(addr as *const *const *const Player);
         // Localplayer is first, skip it
         Ok((1..*length).map(|i| &**list.offset(i as isize)).collect())
+    }
+
+    pub unsafe fn is_visible(&self, player: &Player, other: &Player) -> anyhow::Result<bool> {
+        #[repr(C)]
+        #[derive(Default)]
+        struct TraceResults {
+            end: WorldPosition,
+            collided: bool,
+        }
+
+        let addr = static_symbol_address!(self, TRACELINE_SYMBOL);
+        let trace_line: extern "C" fn(
+            WorldPosition,
+            WorldPosition,
+            *const Player,
+            bool,
+            *mut TraceResults,
+            bool,
+        ) = mem::transmute(addr);
+
+        let mut results = TraceResults::default();
+        trace_line(
+            player.pos,
+            other.pos,
+            player as *const _ as *mut _,
+            false,
+            &mut results,
+            false,
+        );
+        Ok(results.collided)
     }
 
     fn get_symbol_offset(&self, symbol: &str) -> anyhow::Result<u64> {
