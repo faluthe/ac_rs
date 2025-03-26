@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, ops::Sub};
+use std::ops::Sub;
 
 #[repr(C)]
 pub struct Player {
@@ -27,11 +27,13 @@ pub struct ViewAngles {
 impl Player {
     pub fn angles_to(&self, other: &Player) -> ViewAngles {
         let delta = other.pos - self.pos;
-        // Common side between the two triangles
-        let adjacent = (delta.x.powi(2) + delta.y.powi(2)).sqrt();
+        // Horizontal distance
+        let dist_xy = (delta.x * delta.x + delta.y * delta.y).sqrt();
+        let yaw = delta.y.atan2(delta.x).to_degrees();
+        let pitch = delta.z.atan2(dist_xy).to_degrees();
         ViewAngles {
-            yaw: delta.y.atan2(delta.x) * 180.0 / PI,
-            pitch: adjacent.atan2(delta.z) * 180.0 / PI,
+            yaw: yaw + 90.0,
+            pitch,
             roll: 0.0,
         }
     }
@@ -57,8 +59,8 @@ impl ViewAngles {
             x - n * y
         }
 
-        let yaw = remainder(self.yaw - other.yaw, 360.0).clamp(-180.0, 180.0);
-        let pitch = remainder(self.pitch - other.pitch, 360.0).clamp(-89.0, 89.0);
+        let yaw = remainder(self.yaw - other.yaw, 360.0).clamp(0.0, 360.0);
+        let pitch = remainder(self.pitch - other.pitch, 360.0).clamp(-90.0, 90.0);
 
         pitch.hypot(yaw)
     }
