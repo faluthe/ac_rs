@@ -1,15 +1,15 @@
-use std::{ffi::c_void, fs, mem};
+use std::{ffi::c_void, fs, mem, ptr};
 
 use anyhow::anyhow;
 use goblin::elf::Elf;
 use libc::{c_int, dl_iterate_phdr, dl_phdr_info, size_t};
-use log::debug;
+use log::{debug, info};
 
 use crate::player::{Player, WorldPosition};
 
 const PLAYER1_SYMBOL: &str = "player1";
 const PLAYERS_SYMBOL: &str = "players";
-const TRACELINE_SYMBOL: &str = "_Z9TraceLine3vecS_P6dynentbP13traceresult_sb";
+const IS_VISIBLE_SYMBOL: &str = "_Z9IsVisible3vecS_P6dynentb";
 
 #[derive(Copy, Clone)]
 pub struct Process {
@@ -52,33 +52,41 @@ impl Process {
     }
 
     pub unsafe fn is_visible(&self, player: &Player, other: &Player) -> anyhow::Result<bool> {
-        #[repr(C)]
-        #[derive(Default)]
-        struct TraceResults {
-            end: WorldPosition,
-            collided: bool,
-        }
+        // #[repr(C)]
+        // #[derive(Default)]
+        // struct TraceResults {
+        //     end: WorldPosition,
+        //     collided: bool,
+        // }
 
-        let addr = static_symbol_address!(self, TRACELINE_SYMBOL);
-        let trace_line: extern "C" fn(
-            WorldPosition,
-            WorldPosition,
-            *const Player,
-            bool,
-            *mut TraceResults,
-            bool,
-        ) = mem::transmute(addr);
+        // let trace_line: extern "C" fn(
+        //     WorldPosition,
+        //     WorldPosition,
+        //     *const Player,
+        //     bool,
+        //     *mut TraceResults,
+        //     bool,
+        // ) = mem::transmute(addr);
 
-        let mut results = TraceResults::default();
-        trace_line(
-            player.pos,
-            other.pos,
-            player as *const _ as *mut _,
-            false,
-            &mut results,
-            false,
-        );
-        Ok(results.collided)
+        // info!("Traceline found at {:#X}", trace_line as u64);
+
+        // let mut results = TraceResults::default();
+        // trace_line(
+        //     player.pos,
+        //     other.pos,
+        //     ptr::null_mut(),
+        //     false,
+        //     &mut results as *mut _,
+        //     false,
+        // );
+        // Ok(!results.collided)
+
+        let addr = static_symbol_address!(self, IS_VISIBLE_SYMBOL);
+        let is_visible: extern "C" fn(WorldPosition, WorldPosition, *const Player, bool) -> bool = mem::transmute(addr);
+        let b = is_visible(player.pos, other.pos, ptr::null(), false);
+        info!("IsVisible found at {:#X}", addr);
+        info!("IsVisible: {}", b);
+        Ok(b)
     }
 
     fn get_symbol_offset(&self, symbol: &str) -> anyhow::Result<u64> {
