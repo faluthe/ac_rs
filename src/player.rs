@@ -11,10 +11,18 @@ pub struct Player {
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
-pub struct WorldPosition {
+pub struct Vec3 {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union WorldPosition {
+    pub v: Vec3,
+    pub f: [f32; 3],
+    pub i: [i32; 3],
 }
 
 #[repr(C)]
@@ -25,12 +33,12 @@ pub struct ViewAngles {
 }
 
 impl Player {
-    pub fn angles_to(&self, other: &Player) -> ViewAngles {
+    pub unsafe fn angles_to(&self, other: &Player) -> ViewAngles {
         let delta = other.pos - self.pos;
         // Horizontal distance
-        let dist_xy = (delta.x * delta.x + delta.y * delta.y).sqrt();
-        let yaw = delta.y.atan2(delta.x).to_degrees();
-        let pitch = delta.z.atan2(dist_xy).to_degrees();
+        let dist_xy = (delta.v.x * delta.v.x + delta.v.y * delta.v.y).sqrt();
+        let yaw = delta.v.y.atan2(delta.v.x).to_degrees();
+        let pitch = delta.v.z.atan2(dist_xy).to_degrees();
         ViewAngles {
             yaw: yaw + 90.0,
             pitch,
@@ -39,14 +47,35 @@ impl Player {
     }
 }
 
+impl Default for WorldPosition {
+    #[inline]
+    fn default() -> Self {
+        WorldPosition { v: Vec3::default() }
+    }
+}
+
 impl Sub for WorldPosition {
     type Output = Self;
 
-    fn sub(self, rhs: Self) -> Self {
-        Self {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        unsafe {
+            WorldPosition {
+                v: Vec3 {
+                    x: self.v.x - rhs.v.x,
+                    y: self.v.y - rhs.v.y,
+                    z: self.v.z - rhs.v.z,
+                },
+            }
+        }
+    }
+}
+
+impl WorldPosition {
+    #[inline]
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        WorldPosition {
+            v: Vec3 { x, y, z },
         }
     }
 }

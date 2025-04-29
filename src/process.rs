@@ -3,7 +3,7 @@ use std::{ffi::c_void, fs, mem, ptr};
 use anyhow::anyhow;
 use goblin::elf::Elf;
 use libc::{c_int, dl_iterate_phdr, dl_phdr_info, size_t};
-use log::{debug, info};
+use log::debug;
 
 use crate::player::{Player, WorldPosition};
 
@@ -52,41 +52,15 @@ impl Process {
     }
 
     pub unsafe fn is_visible(&self, player: &Player, other: &Player) -> anyhow::Result<bool> {
-        // #[repr(C)]
-        // #[derive(Default)]
-        // struct TraceResults {
-        //     end: WorldPosition,
-        //     collided: bool,
-        // }
-
-        // let trace_line: extern "C" fn(
-        //     WorldPosition,
-        //     WorldPosition,
-        //     *const Player,
-        //     bool,
-        //     *mut TraceResults,
-        //     bool,
-        // ) = mem::transmute(addr);
-
-        // info!("Traceline found at {:#X}", trace_line as u64);
-
-        // let mut results = TraceResults::default();
-        // trace_line(
-        //     player.pos,
-        //     other.pos,
-        //     ptr::null_mut(),
-        //     false,
-        //     &mut results as *mut _,
-        //     false,
-        // );
-        // Ok(!results.collided)
-
         let addr = static_symbol_address!(self, IS_VISIBLE_SYMBOL);
-        let is_visible: extern "C" fn(WorldPosition, WorldPosition, *const Player, bool) -> bool = mem::transmute(addr);
-        let b = is_visible(player.pos, other.pos, ptr::null(), false);
-        info!("IsVisible found at {:#X}", addr);
-        info!("IsVisible: {}", b);
-        Ok(b)
+        let is_visible: extern "C" fn(WorldPosition, WorldPosition, *const Player, bool) -> bool =
+            mem::transmute(addr);
+
+        // lol
+        let from = WorldPosition::new(player.pos.v.x, player.pos.v.y, player.pos.v.z + 5.0);
+        let to = WorldPosition::new(other.pos.v.x, other.pos.v.y, other.pos.v.z + 5.0);
+
+        Ok(is_visible(from, to, ptr::null(), false))
     }
 
     fn get_symbol_offset(&self, symbol: &str) -> anyhow::Result<u64> {
