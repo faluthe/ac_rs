@@ -5,8 +5,12 @@ pub struct Player {
     _pad_0x2c: [u8; 0x2c],
     pub pos: WorldPosition,
     pub view_angles: ViewAngles,
-    _pad_0x100: [u8; 0xbc],
+    _pad_0x7a: [u8; 0x36],
+    pub state: u8,
+    _pad_0x100: [u8; 0x85],
     pub health: i32,
+    _pad_0x320: [u8; 0x21c],
+    pub team: i32,
 }
 
 #[repr(C)]
@@ -33,6 +37,10 @@ pub struct ViewAngles {
 }
 
 impl Player {
+    pub fn is_alive(&self) -> bool {
+        self.state == 0 // alive = 0, dead, spawning, lagged, editing, spectate
+    }
+
     pub unsafe fn angles_to(&self, other: &Player) -> ViewAngles {
         let delta = other.pos - self.pos;
         // Horizontal distance

@@ -57,8 +57,8 @@ impl Process {
             mem::transmute(addr);
 
         // lol
-        let from = WorldPosition::new(player.pos.v.x, player.pos.v.y, player.pos.v.z + 5.0);
-        let to = WorldPosition::new(other.pos.v.x, other.pos.v.y, other.pos.v.z + 5.0);
+        let from = WorldPosition::new(player.pos.v.x, player.pos.v.y, player.pos.v.z + 3.0);
+        let to = WorldPosition::new(other.pos.v.x, other.pos.v.y, other.pos.v.z + 3.0);
 
         Ok(is_visible(from, to, ptr::null(), false))
     }

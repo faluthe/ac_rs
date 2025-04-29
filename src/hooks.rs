@@ -49,14 +49,18 @@ unsafe extern "C" fn hk_swap_window(window: *mut c_void) {
         let best_angles = process
             .get_players()?
             .into_iter()
-            .filter(|player| process.is_visible(player1, player).unwrap_or(false))
+            .filter(|player| {
+                player.team != player1.team
+                    && player.is_alive()
+                    && process.is_visible(player1, player).unwrap_or(false)
+            })
             .map(|player| player1.angles_to(player))
             .min_by(|a, b| {
                 player1
                     .view_angles
                     .fov_to(a)
                     .partial_cmp(&player1.view_angles.fov_to(b))
-                    .unwrap_or(std::cmp::Ordering::Equal)
+                    .unwrap_or(std::cmp::Ordering::Greater)
             });
 
         if let Some(best_angles) = best_angles {
