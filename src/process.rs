@@ -1,4 +1,4 @@
-use std::{ffi::c_void, fs, mem};
+use std::{ffi::c_void, fs, mem, ptr};
 
 use anyhow::anyhow;
 use goblin::elf::Elf;
@@ -9,7 +9,7 @@ use crate::player::{Player, WorldPosition};
 
 const PLAYER1_SYMBOL: &str = "player1";
 const PLAYERS_SYMBOL: &str = "players";
-const TRACELINE_SYMBOL: &str = "_Z9TraceLine3vecS_P6dynentbP13traceresult_sb";
+const IS_VISIBLE_SYMBOL: &str = "_Z9IsVisible3vecS_P6dynentb";
 
 #[derive(Copy, Clone)]
 pub struct Process {
@@ -52,33 +52,15 @@ impl Process {
     }
 
     pub unsafe fn is_visible(&self, player: &Player, other: &Player) -> anyhow::Result<bool> {
-        #[repr(C)]
-        #[derive(Default)]
-        struct TraceResults {
-            end: WorldPosition,
-            collided: bool,
-        }
+        let addr = static_symbol_address!(self, IS_VISIBLE_SYMBOL);
+        let is_visible: extern "C" fn(WorldPosition, WorldPosition, *const Player, bool) -> bool =
+            mem::transmute(addr);
 
-        let addr = static_symbol_address!(self, TRACELINE_SYMBOL);
-        let trace_line: extern "C" fn(
-            WorldPosition,
-            WorldPosition,
-            *const Player,
-            bool,
-            *mut TraceResults,
-            bool,
-        ) = mem::transmute(addr);
+        // lol
+        let from = WorldPosition::new(player.pos.v.x, player.pos.v.y, player.pos.v.z + 5.0);
+        let to = WorldPosition::new(other.pos.v.x, other.pos.v.y, other.pos.v.z + 5.0);
 
-        let mut results = TraceResults::default();
-        trace_line(
-            player.pos,
-            other.pos,
-            player as *const _ as *mut _,
-            false,
-            &mut results,
-            false,
-        );
-        Ok(results.collided)
+        Ok(is_visible(from, to, ptr::null(), false))
     }
 
     fn get_symbol_offset(&self, symbol: &str) -> anyhow::Result<u64> {

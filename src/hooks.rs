@@ -49,6 +49,7 @@ unsafe extern "C" fn hk_swap_window(window: *mut c_void) {
         let best_angles = process
             .get_players()?
             .into_iter()
+            .filter(|player| process.is_visible(player1, player).unwrap_or(false))
             .map(|player| player1.angles_to(player))
             .min_by(|a, b| {
                 player1
