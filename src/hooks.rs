@@ -8,7 +8,7 @@ use anyhow::anyhow;
 use libc::{dlopen, dlsym, RTLD_LAZY, RTLD_NOLOAD};
 use log::{debug, warn};
 
-use crate::process::Process;
+use crate::{gl, process::Process};
 
 /// The path to SDL2. Adjust if necessary.
 const SDL2_LIB: &str = "/usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0.3000.0";
@@ -42,8 +42,11 @@ unsafe extern "C" fn hk_swap_window(window: *mut c_void) {
         };
         let process = PROCESS.get_or_init(|| Process::new().expect("Failed to initialize process"));
 
+        gl::draw_rect(100.0, 100.0, 500.0, 500.0, 1.0, 0.0, 0.0);
+
         og(window);
 
+        // Aimbot
         let player1 = process.get_player1()?;
         // Find the angles to the player with the smallest fov
         let best_angles = process
@@ -52,7 +55,7 @@ unsafe extern "C" fn hk_swap_window(window: *mut c_void) {
             .filter(|player| {
                 player.team != player1.team
                     && player.is_alive()
-                    && process.is_visible(player1, player).unwrap_or(false)
+                    && process.is_visible(player1, player)
             })
             .map(|player| player1.angles_to(player))
             .min_by(|a, b| {

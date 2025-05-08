@@ -22,7 +22,7 @@ macro_rules! static_symbol_address {
         static mut OFFSET: u64 = 0;
         unsafe {
             if OFFSET == 0 {
-                OFFSET = $self.get_symbol_offset($symbol)?;
+                OFFSET = $self.get_symbol_offset($symbol).unwrap();
             }
             $self.base_address + OFFSET
         }
@@ -51,16 +51,16 @@ impl Process {
         Ok((1..*length).map(|i| &**list.offset(i as isize)).collect())
     }
 
-    pub unsafe fn is_visible(&self, player: &Player, other: &Player) -> anyhow::Result<bool> {
+    pub unsafe fn is_visible(&self, player: &Player, other: &Player) -> bool {
         let addr = static_symbol_address!(self, IS_VISIBLE_SYMBOL);
         let is_visible: extern "C" fn(WorldPosition, WorldPosition, *const Player, bool) -> bool =
             mem::transmute(addr);
 
-        // lol
-        let from = WorldPosition::new(player.pos.v.x, player.pos.v.y, player.pos.v.z + 3.0);
-        let to = WorldPosition::new(other.pos.v.x, other.pos.v.y, other.pos.v.z + 3.0);
+        // lol. TBD: Use actual head pos
+        let from = WorldPosition::new(player.pos.v.x, player.pos.v.y, player.pos.v.z + 4.5);
+        let to = WorldPosition::new(other.pos.v.x, other.pos.v.y, other.pos.v.z + 4.5);
 
-        Ok(is_visible(from, to, ptr::null(), false))
+        is_visible(from, to, ptr::null(), false)
     }
 
     fn get_symbol_offset(&self, symbol: &str) -> anyhow::Result<u64> {

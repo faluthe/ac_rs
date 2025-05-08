@@ -1,5 +1,6 @@
 use log::error;
 
+mod gl;
 mod hooks;
 mod player;
 mod process;
