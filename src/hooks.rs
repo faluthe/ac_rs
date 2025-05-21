@@ -4,11 +4,11 @@ use std::{
     sync::OnceLock,
 };
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use libc::{dlopen, dlsym, RTLD_LAZY, RTLD_NOLOAD};
 use log::{debug, warn};
 
-use crate::{gl, process::Process};
+use crate::{aimbot, esp, process::Process};
 
 /// The path to SDL2. Adjust if necessary.
 const SDL2_LIB: &str = "/usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0.3000.0";
@@ -17,12 +17,12 @@ static PROCESS: OnceLock<Process> = OnceLock::new();
 static mut SDL_HANDLE: Option<*mut c_void> = None;
 static mut SWAP_WINDOW_HOOK: Option<SDLHook<unsafe extern "C" fn(*mut c_void)>> = None;
 
-pub unsafe fn init() -> anyhow::Result<()> {
+pub unsafe fn init() -> Result<()> {
     SWAP_WINDOW_HOOK = Some(SDLHook::new("SDL_GL_SwapWindow", hk_swap_window as _)?);
     Ok(())
 }
 
-pub unsafe fn fini() -> anyhow::Result<()> {
+pub unsafe fn fini() -> Result<()> {
     match SWAP_WINDOW_HOOK {
         Some(ref h) => {
             h.restore();
@@ -34,41 +34,18 @@ pub unsafe fn fini() -> anyhow::Result<()> {
 }
 
 unsafe extern "C" fn hk_swap_window(window: *mut c_void) {
-    unsafe fn hk(window: *mut c_void) -> anyhow::Result<()> {
+    unsafe fn hk(window: *mut c_void) -> Result<()> {
         let og = match SWAP_WINDOW_HOOK {
             Some(ref h) => h.og,
-            // You really shouldn't be here
             None => return Err(anyhow!("Hook was not initialized properly")),
         };
         let process = PROCESS.get_or_init(|| Process::new().expect("Failed to initialize process"));
 
-        gl::draw_rect(100.0, 100.0, 500.0, 500.0, 1.0, 0.0, 0.0);
-
         og(window);
 
-        // Aimbot
         let player1 = process.get_player1()?;
-        // Find the angles to the player with the smallest fov
-        let best_angles = process
-            .get_players()?
-            .into_iter()
-            .filter(|player| {
-                player.team != player1.team
-                    && player.is_alive()
-                    && process.is_visible(player1, player)
-            })
-            .map(|player| player1.angles_to(player))
-            .min_by(|a, b| {
-                player1
-                    .view_angles
-                    .fov_to(a)
-                    .partial_cmp(&player1.view_angles.fov_to(b))
-                    .unwrap_or(std::cmp::Ordering::Greater)
-            });
-
-        if let Some(best_angles) = best_angles {
-            player1.view_angles = best_angles;
-        }
+        aimbot::run(process, player1)?;
+        esp::run()?;
 
         Ok(())
     }
@@ -86,7 +63,7 @@ struct SDLHook<T: Copy> {
 }
 
 impl<T: Copy> SDLHook<T> {
-    unsafe fn new(sym_name: &str, hk: T) -> anyhow::Result<Self> {
+    unsafe fn new(sym_name: &str, hk: T) -> Result<Self> {
         let lib = match SDL_HANDLE {
             Some(h) => h,
             None => {

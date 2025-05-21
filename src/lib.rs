@@ -1,5 +1,7 @@
 use log::error;
 
+mod aimbot;
+mod esp;
 mod gl;
 mod hooks;
 mod player;

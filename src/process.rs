@@ -1,6 +1,6 @@
 use std::{ffi::c_void, fs, mem, ptr};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use goblin::elf::Elf;
 use libc::{c_int, dl_iterate_phdr, dl_phdr_info, size_t};
 use log::debug;
@@ -30,18 +30,18 @@ macro_rules! static_symbol_address {
 }
 
 impl Process {
-    pub unsafe fn new() -> anyhow::Result<Self> {
+    pub unsafe fn new() -> Result<Self> {
         let base_address = Self::main_exe_base().ok_or(anyhow!("Failed to find main exe base"))?;
         debug!("Process base address found @ {:#X}", base_address);
         Ok(Self { base_address })
     }
 
-    pub unsafe fn get_player1(&self) -> anyhow::Result<&'static mut Player> {
+    pub unsafe fn get_player1(&self) -> Result<&'static mut Player> {
         let addr = static_symbol_address!(self, PLAYER1_SYMBOL);
         Ok(&mut **(addr as *const *mut Player))
     }
 
-    pub unsafe fn get_players(&self) -> anyhow::Result<Vec<&'static Player>> {
+    pub unsafe fn get_players(&self) -> Result<Vec<&'static Player>> {
         let addr = static_symbol_address!(self, PLAYERS_SYMBOL);
         // AssaultCube::vector stores a capacity and a length, we need the length
         let length = &*((addr + 0xc) as *const u32);
@@ -63,7 +63,7 @@ impl Process {
         is_visible(from, to, ptr::null(), false)
     }
 
-    fn get_symbol_offset(&self, symbol: &str) -> anyhow::Result<u64> {
+    fn get_symbol_offset(&self, symbol: &str) -> Result<u64> {
         let bin = fs::read("/proc/self/exe")?;
         let elf = Elf::parse(&bin)?;
 
